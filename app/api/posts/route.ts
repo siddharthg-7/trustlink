@@ -15,6 +15,15 @@ const postSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    // Ensure database is initialized
+    const dbReady = await initDatabase()
+    if (!dbReady) {
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 503 }
+      )
+    }
+    
     const searchParams = req.nextUrl.searchParams
     const category = searchParams.get('category')
     const search = searchParams.get('search')
