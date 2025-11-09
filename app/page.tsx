@@ -1,65 +1,235 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import PostCard from '@/components/PostCard'
+import { Filter, TrendingUp } from 'lucide-react'
+
+interface Post {
+  id: string
+  title: string
+  description: string
+  sourceLink: string
+  category: string
+  imageUrl?: string
+  tags: string
+  aiConfidenceScore?: number
+  trustMeter: number
+  upvotes: number
+  downvotes: number
+  isVerified: boolean
+  status: string
+  createdAt: Date | string
+  author: {
+    id: string
+    name?: string
+    username?: string
+    image?: string
+    verifiedBadge?: boolean
+  }
+}
 
 export default function Home() {
+  const searchParams = useSearchParams()
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
+  const [category, setCategory] = useState<string>('all')
+  const [sort, setSort] = useState<string>('latest')
+  const [search, setSearch] = useState<string>(searchParams.get('search') || '')
+  const [userVotes, setUserVotes] = useState<Record<string, boolean | null>>({})
+
+  useEffect(() => {
+    fetchPosts()
+  }, [category, sort, search])
+
+  const fetchPosts = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (category !== 'all') params.append('category', category)
+      if (search) params.append('search', search)
+      params.append('sort', sort)
+
+      const res = await fetch(`/api/posts?${params.toString()}`)
+      const data = await res.json()
+      setPosts(data.posts || [])
+      
+      // Fetch user votes
+      const token = localStorage.getItem('token')
+      if (token) {
+        // Fetch votes for each post
+        const votes: Record<string, boolean | null> = {}
+        for (const post of data.posts || []) {
+          const voteRes = await fetch(`/api/posts/${post.id}/vote`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (voteRes.ok) {
+            const voteData = await voteRes.json()
+            votes[post.id] = voteData.vote?.isUpvote ?? null
+          }
+        }
+        setUserVotes(votes)
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVote = async (postId: string, isUpvote: boolean) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      alert('Please login to vote')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isUpvote }),
+      })
+
+      if (res.ok) {
+        // Update local state
+        setUserVotes((prev) => ({
+          ...prev,
+          [postId]: prev[postId] === isUpvote ? null : isUpvote,
+        }))
+        // Refresh posts
+        fetchPosts()
+      }
+    } catch (error) {
+      console.error('Error voting:', error)
+    }
+  }
+
+  const handleReport = async (postId: string) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      alert('Please login to report')
+      return
+    }
+
+    const reason = prompt('Why are you reporting this post?')
+    if (!reason) return
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason }),
+      })
+
+      if (res.ok) {
+        alert('Report submitted. Thank you!')
+      }
+    } catch (error) {
+      console.error('Error reporting:', error)
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="container mx-auto px-4 py-8">
+      {/* Category Tabs */}
+      <div className="mb-8">
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => setCategory('all')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              category === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            All Posts
+          </button>
+          <button
+            onClick={() => setCategory('PROMOTION')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              category === 'PROMOTION'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            🔵 Promotions
+          </button>
+          <button
+            onClick={() => setCategory('INTERNSHIP')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              category === 'INTERNSHIP'
+                ? 'bg-pink-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            🌸 Internships
+          </button>
+          <button
+            onClick={() => setCategory('SCAM_REPORT')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              category === 'SCAM_REPORT'
+                ? 'bg-red-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            🔴 Scam Reports
+          </button>
+        </div>
+
+        {/* Sort & Filter */}
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Filter className="w-5 h-5 text-gray-500" />
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              <option value="latest">Latest</option>
+              <option value="trusted">Most Trusted</option>
+              <option value="reported">Most Reported</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Posts Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-md animate-pulse-slow h-96"
+            />
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-gray-500 dark:text-gray-400 text-lg">
+            No posts found. Be the first to create one!
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {posts.map((post) => (
+            <div key={post.id} className="animate-fade-in">
+              <PostCard
+                post={post}
+                userVote={userVotes[post.id] ?? null}
+                onVote={handleVote}
+                onReport={handleReport}
+              />
+            </div>
+          ))}
         </div>
-      </main>
+      )}
     </div>
-  );
+  )
 }

@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  VERIFIER
+  USER
+}
+
+enum PostCategory {
+  PROMOTION
+  INTERNSHIP
+  SCAM_REPORT
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FLAGGED
+  REJECTED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  username      String?   @unique
+  password      String?
+  image         String?
+  bio           String?
+  college       String?
+  company       String?
+  role          UserRole  @default(USER)
+  trustScore    Int       @default(0)
+  verifiedBadge Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  posts         Post[]
+  votes         Vote[]
+  reports       Report[]
+  notifications Notification[]
+  
+  @@index([email])
+  @@index([username])
+}
+
+model Post {
+  id                String             @id @default(cuid())
+  title             String
+  description       String
+  sourceLink        String
+  category          PostCategory
+  imageUrl          String?
+  fileUrl           String?
+  tags              String              // JSON array of tags
+  aiConfidenceScore Float?              // 0-100, percentage genuine
+  aiSuspiciousScore Float?              // 0-100, percentage suspicious
+  trustMeter        Float               @default(0) // Calculated from votes
+  status            VerificationStatus  @default(PENDING)
+  upvotes           Int                 @default(0)
+  downvotes         Int                 @default(0)
+  viewCount          Int                 @default(0)
+  isVerified        Boolean             @default(false)
+  verifiedBy        String?             // User ID who verified
+  verifiedAt        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  authorId          String
+  author            User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  votes             Vote[]
+  reports           Report[]
+  
+  @@index([category])
+  @@index([status])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  isUpvote  Boolean  // true = genuine, false = scam
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reason      String
+  description String?
+  status      String   @default("PENDING") // PENDING, REVIEWED, RESOLVED
+  createdAt   DateTime @default(now())
+  reviewedAt  DateTime?
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@index([postId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // "VERIFICATION", "SCAM_ALERT", "NEW_POST", "REPORT"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([read])
+}
