@@ -51,6 +51,16 @@ export default function Home() {
       params.append('sort', sort)
 
       const res = await fetch(`/api/posts?${params.toString()}`)
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch posts: ${res.status}`)
+      }
+      
+      const contentType = res.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format')
+      }
+      
       const data = await res.json()
       setPosts(data.posts || [])
       
@@ -60,12 +70,20 @@ export default function Home() {
         // Fetch votes for each post
         const votes: Record<string, boolean | null> = {}
         for (const post of data.posts || []) {
-          const voteRes = await fetch(`/api/posts/${post.id}/vote`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          if (voteRes.ok) {
-            const voteData = await voteRes.json()
-            votes[post.id] = voteData.vote?.isUpvote ?? null
+          try {
+            const voteRes = await fetch(`/api/posts/${post.id}/vote`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            if (voteRes.ok) {
+              const voteContentType = voteRes.headers.get('content-type')
+              if (voteContentType && voteContentType.includes('application/json')) {
+                const voteData = await voteRes.json()
+                votes[post.id] = voteData.vote?.isUpvote ?? null
+              }
+            }
+          } catch (err) {
+            // Skip vote fetch errors
+            console.error(`Error fetching vote for post ${post.id}:`, err)
           }
         }
         setUserVotes(votes)

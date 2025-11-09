@@ -64,12 +64,24 @@ export default function CreatePostPage() {
         }),
       })
 
-      const data = await res.json()
-
       if (!res.ok) {
-        setError(data.error || 'Failed to create post')
+        const contentType = res.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json()
+          setError(data.error || 'Failed to create post')
+        } else {
+          setError('Failed to create post. Please try again.')
+        }
         return
       }
+
+      const contentType = res.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        setError('Invalid response. Please try again.')
+        return
+      }
+
+      const data = await res.json()
 
       router.push('/')
     } catch (err) {
