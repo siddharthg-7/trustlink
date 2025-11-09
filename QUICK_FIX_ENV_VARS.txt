@@ -1,0 +1,31 @@
+═══════════════════════════════════════════════════════════════
+  QUICK COPY-PASTE: Vercel Environment Variables
+═══════════════════════════════════════════════════════════════
+
+Copy these EXACTLY as shown (no extra spaces or characters):
+
+───────────────────────────────────────────────────────────────
+Variable 1:
+───────────────────────────────────────────────────────────────
+NAME:  DATABASE_URL
+VALUE: file:./dev.db
+
+───────────────────────────────────────────────────────────────
+Variable 2:
+───────────────────────────────────────────────────────────────
+NAME:  JWT_SECRET
+VALUE: 7abdc3c36e4af02a7e31caf26bafeac958f3cf40c0a55a241487bed1efcba880
+
+───────────────────────────────────────────────────────────────
+Variable 3:
+───────────────────────────────────────────────────────────────
+NAME:  NEXTAUTH_SECRET
+VALUE: 8f08518cafdb53ed1670c38035b1d8a7808d9ddff618b60ae4ecc01c4d91180d
+
+═══════════════════════════════════════════════════════════════
+  IMPORTANT:
+  - Type the NAME exactly (no spaces, no hyphens)
+  - Copy the VALUE exactly
+  - Select all 3 environments for each variable
+═══════════════════════════════════════════════════════════════
+
