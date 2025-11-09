@@ -1,0 +1,27 @@
+═══════════════════════════════════════════════════════════════
+  VERCEL ENVIRONMENT VARIABLES
+  Copy these to Vercel BEFORE deploying
+═══════════════════════════════════════════════════════════════
+
+1. DATABASE_URL (Temporary - for build)
+   ────────────────────────────────────────────────────────────
+   Name: DATABASE_URL
+   Value: file:./dev.db
+   Environments: Production, Preview, Development (all)
+
+2. JWT_SECRET
+   ────────────────────────────────────────────────────────────
+   Name: JWT_SECRET
+   Value: 7abdc3c36e4af02a7e31caf26bafeac958f3cf40c0a55a241487bed1efcba880
+   Environments: Production, Preview, Development (all)
+
+3. NEXTAUTH_SECRET
+   ────────────────────────────────────────────────────────────
+   Name: NEXTAUTH_SECRET
+   Value: 8f08518cafdb53ed1670c38035b1d8a7808d9ddff618b60ae4ecc01c4d91180d
+   Environments: Production, Preview, Development (all)
+
+═══════════════════════════════════════════════════════════════
+  IMPORTANT: Add these BEFORE clicking Deploy!
+═══════════════════════════════════════════════════════════════
+
