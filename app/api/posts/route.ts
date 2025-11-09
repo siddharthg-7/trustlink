@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { initDatabase } from '@/lib/db-init'
 import { z } from 'zod'
 
 const postSchema = z.object({
