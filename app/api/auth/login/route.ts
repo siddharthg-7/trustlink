@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword, generateToken } from '@/lib/auth'
+import { initDatabase } from '@/lib/db-init'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -10,6 +11,15 @@ const loginSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Ensure database is initialized
+    const dbReady = await initDatabase()
+    if (!dbReady) {
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again later.' },
+        { status: 503 }
+      )
+    }
+
     const body = await req.json()
     const { email, password } = loginSchema.parse(body)
 
@@ -54,6 +64,7 @@ export async function POST(req: NextRequest) {
       token,
     })
   } catch (error) {
+    console.error('Login error:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },
@@ -61,7 +72,10 @@ export async function POST(req: NextRequest) {
       )
     }
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     )
   }
