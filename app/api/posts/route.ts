@@ -82,8 +82,12 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (error) {
+    console.error('Error fetching posts:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     )
   }
@@ -160,8 +164,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
+    console.error('Error creating post:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     )
   }
