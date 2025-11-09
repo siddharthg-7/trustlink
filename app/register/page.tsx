@@ -52,12 +52,24 @@ export default function RegisterPage() {
         }),
       })
 
-      const data = await res.json()
-
       if (!res.ok) {
-        setError(data.error || 'Registration failed')
+        const contentType = res.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json()
+          setError(data.error || 'Registration failed')
+        } else {
+          setError('Registration failed. Please try again.')
+        }
         return
       }
+
+      const contentType = res.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        setError('Invalid response. Please try again.')
+        return
+      }
+
+      const data = await res.json()
 
       localStorage.setItem('token', data.token)
       router.push('/')

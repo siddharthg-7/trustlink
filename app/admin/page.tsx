@@ -43,7 +43,16 @@ export default function AdminDashboard() {
     fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch user')
+        }
+        const contentType = res.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Invalid response format')
+        }
+        return res.json()
+      })
       .then((data) => {
         if (!data.user || data.user.role !== 'ADMIN') {
           router.push('/')
@@ -63,16 +72,25 @@ export default function AdminDashboard() {
       const postsRes = await fetch('/api/admin/posts?status=FLAGGED', {
         headers: { Authorization: `Bearer ${token}` },
       })
-      const postsData = await postsRes.json()
-      setPosts(postsData.posts || [])
+      
+      if (postsRes.ok) {
+        const contentType = postsRes.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const postsData = await postsRes.json()
+          setPosts(postsData.posts || [])
+        }
+      }
 
       // Fetch stats
       const statsRes = await fetch('/api/admin/stats', {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (statsRes.ok) {
-        const statsData = await statsRes.json()
-        setStats(statsData)
+        const contentType = statsRes.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const statsData = await statsRes.json()
+          setStats(statsData)
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)

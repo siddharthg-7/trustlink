@@ -27,7 +27,16 @@ export default function Header() {
       fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch user')
+          }
+          const contentType = res.headers.get('content-type')
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Invalid response format')
+          }
+          return res.json()
+        })
         .then((data) => {
           if (data.user) setUser(data.user)
         })
